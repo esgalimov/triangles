@@ -5,7 +5,7 @@
 int main() {
     point_t pnt1{0, 0, 0};
     point_t pnt2{1, 0, 0};
-    point_t pnt3{0, 1, 0};
+    point_t pnt3{1, 1, 1};
 
     point_t pnt4{2, 1, 1};
     point_t pnt5{1, 3, 4};
