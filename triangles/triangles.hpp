@@ -8,82 +8,96 @@
 
 #define NDEBUG
 
-const double EPS = 0.00001;
+namespace double_funcs {
+    const double EPS = 0.00001;
+
+    bool equal(double a, double b) {
+        return std::abs(a - b) < double_funcs::EPS;
+    }
+}
+
+namespace geometry {
+
+enum location_t {COINCIDE, PARALLEL, INTERSECT, INTERBR};
 
 class point_t {
-    double x = NAN,
-           y = NAN,
-           z = NAN;
+    double x_, y_, z_;
 
     public:
-        point_t(double x_, double y_, double z_) : x(x_), y(y_), z(z_) {};
+        point_t(double x = NAN, double y = NAN, double z = NAN) : x_(x), y_(y), z_(z) {};
+
+        point_t(const point_t &pnt) : x_(pnt.get_x()), y_(pnt.get_y()), z_(pnt.get_z()) {};
 
         void print() const {
-            std::cout << "point(" << x << ";" << y << ";" << z << ")" << std::endl;
+            std::cout << "point(" << x_ << ";" << y_ << ";" << z_ << ")" << std::endl;
         }
 
         bool is_valid() const {
-            return !(std::isnan(x) && std::isnan(y) && std::isnan(z));
+            return !(std::isnan(x_) && std::isnan(y_) && std::isnan(z_));
         }
 
-        bool equal(const point_t &pnt) const {
-            return (std::abs(x - pnt.x) < EPS &&
-                    std::abs(y - pnt.y) < EPS &&
-                    std::abs(z - pnt.z) < EPS);
+        bool operator==(const point_t &pnt) const {
+            return (double_funcs::equal(x_, pnt.x_) &&
+                    double_funcs::equal(y_, pnt.y_) &&
+                    double_funcs::equal(z_, pnt.z_));
         }
 
-        double get_x() const { return x; }
-        double get_y() const { return y; }
-        double get_z() const { return z; }
+        bool operator!=(const point_t &pnt) const {
+            return !(*this == pnt);
+        }
+
+        double get_x() const { return x_; }
+        double get_y() const { return y_; }
+        double get_z() const { return z_; }
 };
 
 class vector_t {
-    point_t vec_coords;
+    double x_, y_, z_;
 
     public:
-        vector_t(const point_t &pnt) :
-            vec_coords(pnt.get_x(), pnt.get_y(), pnt.get_z()) {};
+        vector_t(double x = NAN, double y = NAN, double z = NAN) : x_(x), y_(y), z_(z) {};
 
-        bool is_valid() const { return vec_coords.is_valid(); }
+        vector_t(const point_t &pnt1, const point_t &pnt2) :
+            x_(pnt1.get_x() - pnt2.get_x()),
+            y_(pnt1.get_y() - pnt2.get_y()),
+            z_(pnt1.get_z() - pnt2.get_z()) {}
+
+        bool is_valid() const {
+            return !(std::isnan(x_) && std::isnan(y_) && std::isnan(z_));
+        }
 
         vector_t multiply(const vector_t &vec) const {
             assert(is_valid() && vec.is_valid());
 
-            double x = vec_coords.get_y() * vec.vec_coords.get_z() -
-                       vec_coords.get_z() * vec.vec_coords.get_y(),
+            double x = get_y() * vec.get_z() - get_z() * vec.get_y(),
+                   y = get_z() * vec.get_x() - get_x() * vec.get_z(),
+                   z = get_x() * vec.get_y() - get_y() * vec.get_x();
 
-                   y = vec_coords.get_z() * vec.vec_coords.get_x() -
-                       vec_coords.get_x() * vec.vec_coords.get_z(),
-
-                   z = vec_coords.get_x() * vec.vec_coords.get_y() -
-                       vec_coords.get_y() * vec.vec_coords.get_x();
-
-            return vector_t{point_t{x, y, z}};
+            return vector_t{x, y, z};
         }
 
-        double scalar_multiply(const vectro_t &vec) const {
+        double scalar_multiply(const vector_t &vec) const {
             assert(is_valid() && vec.is_valid());
 
-            return vec_coords.get_x() * vec.vec_coords.get_x() +
-                   vec_coords.get_y() * vec.vec_coords.get_y() +
-                   vec_coords.get_z() * vec.vec_coords.get_z();
+            return get_x() * vec.get_x() + get_y() * vec.get_y() + get_z() * vec.get_z();
         }
 
-        double vec_length() const {
+        double len() const {
             assert(is_valid());
 
-            return std::sqrt(std::pow(vec_coords.get_x(), 2) +
-                             std::pow(vec_coords.get_y(), 2) +
-                             std::pow(vec_coords.get_z(), 2));
+            return std::sqrt(std::pow(get_x(), 2) + std::pow(get_y(), 2) + std::pow(get_z(), 2));
         }
 
         bool is_collinear(const vector_t &vec) const {
-            return std::abs(muptiply(vec).vec_length()) < EPS;
+            return double_funcs::equal(multiply(vec).len(), 0);
         }
 
+        double get_x() const { return x_; }
+        double get_y() const { return y_; }
+        double get_z() const { return z_; }
+
         void print() const {
-            std::cout << "vector:";
-            vec_coords.print();
+            std::cout << "vector(" << x_ << ";" << y_ << ";" << z_ << ")" << std::endl;
         }
 };
 
@@ -94,8 +108,7 @@ class line_t {
 
     public:
         line_t(const point_t &pnt, const vector_t &vec) :
-            line_pnt(pnt.get_x(), pnt.get_y(), pnt.get_z()),
-            dir_vec(vec) {};
+            line_pnt(pnt), dir_vec(vec) {};
 
         void print() const {
             std::cout << "line:" << std::endl;
@@ -103,47 +116,66 @@ class line_t {
             dir_vec.print();
         };
 
-        point_t get_line_pnt() { return line_pnt; };
+        location_t relatival_location(const line_t &ln) {
+            assert(is_valid() && ln.is_valid());
 
-        vector_t get_dir_vec() { return dir_vec; };
+            point_t ln_pnt = ln.get_line_pnt();
+
+            vector_t cross_ln_vec{line_pnt, ln.get_line_pnt()};
+
+            if (double_funcs::equal(dir_vec.multiply(ln.dir_vec).scalar_multiply(cross_ln_vec), 0)) {
+                if (dir_vec.is_collinear(ln.dir_vec)) {
+                    if (dir_vec.is_collinear(cross_ln_vec))
+                        return COINCIDE;
+                    else
+                        return PARALLEL;
+                }
+                else
+                    return INTERSECT;
+            }
+            else
+                return INTERBR;
+        }
+
+        bool is_valid() const {
+            return line_pnt.is_valid() && dir_vec.is_valid();
+        }
+
+        point_t get_line_pnt() const { return line_pnt; }
+
+        vector_t get_dir_vec() const { return dir_vec; }
 };
 
 class line_segment_t {
     point_t pnt1;
     point_t pnt2;
+    line_t  line;
 
     public:
-        line_gegment_t(const point_t &p1, const point_t &p2) {
-            pnt1(p1.get_x(), p1.get_y(), p1.get_z());
-            pnt2(p2.get_x(), p2.get_y(), p2.get_z());
+        line_segment_t(const point_t &p1, const point_t &p2) :
+            pnt1(p1), pnt2(p2), line{p1, vector_t{p1, p2}} {}
+
+        line_segment_t get_intersection(const line_t &ln) {
+            assert(is_valid() && ln.is_valid());
+
+            location_t rel_loc = line.relatival_location(ln);
+
+            if (rel_loc == COINCIDE) return *this;
+
+            else if (rel_loc == INTERSECT) {
+                // найти пересечени
+            }
+            //else return line_segment_t{};
         }
 
-        line_segment_t line_seg_line_intersection(const line_t &ln) {
-            vector_t ln_seg_dir_vec = vector_t{pnt1.get_x() - pnt2.get_x(),
-                                               pnt1.get_y() - pnt2.get_y(),
-                                               pnt1.get_z() - pnt2.get_z()};
-
-            vector_t ln_dir_vec = ln.get_dir_vec();
-
-            point_t ln_pnt = ln.get_line_pnt();
-
-            vector_t ln_seg_ln_vec = vector_t{pnt1.get_x() - ln_pnt.get_x(),
-                                              pnt1.get_x() - ln_pnt.get_y(),
-                                              pnt1.get_z() - ln_pnt.get_z()};
-
-            if (std::abs(ln_seg_der_vec.multiply(ln_dir_vec).scalar_multiply(ln_seg_ln_vec)) < EPS) {
-                if (!ln_seg_der_vec.is_collinear(ln_dir_vec)) {
-                    // найти точку пересечения
-                    // вернуть как отрезок с началом и концом в этой точке
-                    // (чтоб было в общем случае, так как пересечением может быть весь отрезок, как в else)
-                    // мб перенести этот метод в line_t?
-                }
-                else {
-                    // если совпадают:
-                    return line_segment_t{pnt1, pnt2};
-                    // иначе вернуть Nan'ы
-                }
-            }
+        bool is_valid() const {
+            return pnt1.is_valid() && pnt2.is_valid() &&
+                   pnt1 != pnt2 && line.is_valid();
+        }
+        void print() const {
+            pnt1.print();
+            pnt2.print();
+            line.print();
         }
 
 
@@ -169,34 +201,68 @@ class triangle_t {
 
 
 class plane_t {
-    double a = NAN, b = NAN, c = NAN, d = NAN;
+    double a_, b_, c_, d_;
 
     public:
+        plane_t(double a = NAN, double b = NAN, double c = NAN, double d = NAN) :
+            a_(a), b_(b), c_(c), d_(d) {};
+
         plane_t(const point_t &pnt1, const point_t &pnt2, const point_t &pnt3) {
             assert(pnt1.is_valid() && pnt2.is_valid() && pnt3.is_valid());
 
-            a = (pnt2.get_y() - pnt1.get_y()) * (pnt3.get_z() - pnt1.get_z()) -
+            a_ = (pnt2.get_y() - pnt1.get_y()) * (pnt3.get_z() - pnt1.get_z()) -
                 (pnt2.get_z() - pnt1.get_z()) * (pnt3.get_y() - pnt1.get_y());
 
-            b = (pnt2.get_z() - pnt1.get_z()) * (pnt3.get_x() - pnt1.get_x()) -
+            b_ = (pnt2.get_z() - pnt1.get_z()) * (pnt3.get_x() - pnt1.get_x()) -
                 (pnt2.get_x() - pnt1.get_x()) * (pnt3.get_z() - pnt1.get_z());
 
-            c = (pnt2.get_x() - pnt1.get_x()) * (pnt3.get_y() - pnt1.get_y()) -
+            c_ = (pnt2.get_x() - pnt1.get_x()) * (pnt3.get_y() - pnt1.get_y()) -
                 (pnt2.get_y() - pnt1.get_y()) * (pnt3.get_x() - pnt1.get_x());
 
-            d = -pnt1.get_x() * a - pnt1.get_y() * b - pnt1.get_z() * c;
+            d_ = -pnt1.get_x() * a_ - pnt1.get_y() * b_ - pnt1.get_z() * c_;
         }
 
-        line_t planes_intersection(const plane_t &pln)
+        location_t relatival_location(const plane_t &pln, const point_t &pnt)
         {
-            assert(is_valid());
+            assert(is_valid() && pln.is_valid() && pnt.is_valid());
+
+            vector_t norm_vecs_mul = get_normal_vector().multiply(pln.get_normal_vector());
+
+            if (double_funcs::equal(norm_vecs_mul.len(), 0)) {
+                if (double_funcs::equal(a_ * pnt.get_x() + b_ * pnt.get_y() +
+                                         c_ * pnt.get_z() + d_, 0)) {
+                    return COINCIDE;
+                }
+                return PARALLEL;
+            }
+            return INTERSECT;
+        }
+
+        line_t get_intersection(const plane_t &pln) {
+            assert(is_valid() && pln.is_valid());
 
             vector_t dir_vec = get_normal_vector().multiply(pln.get_normal_vector());
 
-            double x = 1,
-                   delta = (b * pln.c - pln.b * c),
-                   y = (-pln.c * (d + a * x) + c * (pln.d + pln.a * x)) / delta,
-                   z = (-b * (pln.d + pln.a * x) + pln.b * (d + a * x)) / delta;
+            double x = NAN, y = NAN, z = NAN, delta = NAN;
+
+            if (!double_funcs::equal(b_ * pln.c_ - pln.b_ * c_, 0)) {
+                x = 1,
+                delta = (b_ * pln.c_ - pln.b_ * c_),
+                y = (-pln.c_ * (d_ + a_ * x) + c_ * (pln.d_ + pln.a_ * x)) / delta,
+                z = (-b_ * (pln.d_ + pln.a_ * x) + pln.b_ * (d_ + a_ * x)) / delta;
+            }
+            else if (!double_funcs::equal(a_ * pln.c_ - pln.a_ * c_, 0)) {
+                y = 1,
+                delta = (a_ * pln.c_ - pln.a_ * c_),
+                x = (-pln.c_ * (d_ + b_ * y) + c_ * (pln.d_ + pln.b_ * y)) / delta,
+                z = (-a_ * (pln.d_ + pln.b_ * y) + pln.a_ * (d_ + b_ * y)) / delta;
+            }
+            else if (!double_funcs::equal(a_ * pln.b_ - pln.a_ * b_, 0)) {
+                z = 1,
+                delta = (a_ * pln.b_ - pln.a_ * b_),
+                x = (-pln.b_ * (d_ + c_ * z) + b_ * (pln.d_ + pln.c_ * z)) / delta,
+                y = (-a_ * (pln.d_ + pln.c_ * z) + pln.a_ * (d_ + c_ * z)) / delta;
+            }
 
             point_t line_pnt{x, y, z};
 
@@ -205,21 +271,21 @@ class plane_t {
             return ret_line;
         }
 
-        bool is_valid() {
-            return !(std::isnan(a) && std::isnan(b) && std::isnan(c) && std::isnan(d));
+        bool is_valid() const {
+            return !(std::isnan(a_) && std::isnan(b_) && std::isnan(c_) && std::isnan(d_));
         }
 
-        vector_t get_normal_vector() const { return vector_t{point_t{a, b, c}}; }
+        vector_t get_normal_vector() const { return vector_t{a_, b_, c_}; }
 
-        double get_a() { return a; }
-        double get_b() { return b; }
-        double get_c() { return c; }
-        double get_d() { return d; }
+        double get_a() { return a_; }
+        double get_b() { return b_; }
+        double get_c() { return c_; }
+        double get_d() { return d_; }
 
         void print() const {
-            std::cout << "plane: " << " a = " << a << "; b = " << b
-                      << "; c = " << c << "; d = " << d << std::endl;
+            std::cout << "plane: " << " a = " << a_ << "; b = " << b_
+                      << "; c = " << c_ << "; d = " << d_ << std::endl;
         }
 
 };
-
+}
