@@ -144,6 +144,14 @@ class line_t {
         point_t get_line_pnt() const { return line_pnt; }
 
         vector_t get_dir_vec() const { return dir_vec; }
+
+        double get_vec_x() const { return dir_vec.get_x(); }
+        double get_vec_y() const { return dir_vec.get_y(); }
+        double get_vec_z() const { return dir_vec.get_z(); }
+
+        double get_pnt_x() const { return line_pnt.get_x(); }
+        double get_pnt_y() const { return line_pnt.get_y(); }
+        double get_pnt_z() const { return line_pnt.get_z(); }
 };
 
 class line_segment_t {
@@ -163,9 +171,32 @@ class line_segment_t {
             if (rel_loc == COINCIDE) return *this;
 
             else if (rel_loc == INTERSECT) {
-                // найти пересечени
+                double det_12 = line.get_vec_x() * ln.get_vec_y() - line.get_vec_y() * ln.get_vec_x();
+                double det_23 = line.get_vec_y() * ln.get_vec_z() - line.get_vec_z() * ln.get_vec_y();
+                double det_13 = line.get_vec_x() * ln.get_vec_z() - line.get_vec_z() * ln.get_vec_x();
+
+                double r_side_1 = line.get_pnt_x() - ln.get_pnt_x();
+                double r_side_2 = line.get_pnt_y() - ln.get_pnt_y();
+                double r_side_3 = line.get_pnt_z() - ln.get_pnt_z();
+
+                double t_par = NAN;
+
+                if (!double_funcs::equal(det_12, 0))
+                    t_par = (r_side_1 * ln.get_vec_y() - ln.get_vec_x() * r_side_2) / det_12;
+
+                else if (!double_funcs::equal(det_23, 0))
+                    t_par = (r_side_2 * ln.get_vec_y() - ln.get_vec_z() * r_side_3) / det_12;
+                else
+
+                    t_par = (r_side_1 * ln.get_vec_x() - ln.get_vec_z() * r_side_3) / det_12;
+
+                point_t inter_pnt{line.get_vec_x() * t_par - line.get_pnt_x(),
+                                  line.get_vec_y() * t_par - line.get_pnt_y(),
+                                  line.get_vec_z() * t_par - line.get_pnt_z()};
+
+                return line_segment_t{inter_pnt, inter_pnt};
             }
-            //else return line_segment_t{};
+            else return line_segment_t{point_t{}, point_t{}};
         }
 
         bool is_valid() const {
