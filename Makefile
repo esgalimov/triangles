@@ -2,8 +2,8 @@ CXX ?= g++
 
 CXXFLAGS ?= -std=c++17 -O2
 
-triangles.o: triangles/triangles.cpp triangles/triangles.hpp
-	$(CXX) $(CXXFLAGS) triangles/triangles.cpp -o $@
+triangles.o: source/triangles.cpp include/triangles.hpp include/geometry.hpp include/double_funcs.hpp
+	$(CXX) $(CXXFLAGS) source/triangles.cpp -o $@
 
 .PHONY: clean
 clean:
