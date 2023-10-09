@@ -10,7 +10,7 @@ namespace octotrees {
 
     using namespace triangles;
 
-    const int CHILD_NUM = 8;
+    const char CHILD_NUM = 8;
 
     struct max_min_crds_t
     {
@@ -42,9 +42,9 @@ namespace octotrees {
         };
 
         class octonode_t {
-            std::array<octonode_t*, 8> children_;
+            std::array<octonode_t*, 8> children_ = {nullptr};
             std::list<id_trian_t> triangles_;
-            char active_nodes_;
+            unsigned int active_nodes_;
             octonode_t *parent_;
             bool is_leaf_;
 
@@ -54,9 +54,12 @@ namespace octotrees {
                 const point_t center_;
                 const double  radius_;
 
-                octonode_t(const point_t &center, double radius = NAN, octonode_t *parent_ = nullptr) :
-                center_(center), radius_(radius), active_nodes_(0), is_leaf_(true) {
-                    if (radius < 10) return;
+                int cal = 0;
+
+                octonode_t(const point_t &center, double radius = NAN, octonode_t *parent = nullptr) :
+                center_(center), radius_(radius), active_nodes_(0), is_leaf_(true), parent_(parent) {
+                    // сделать адекватный рассчет минимальной ячейки
+                    if (radius < 1000) return;
 
                     double next_rad = radius / 2;
 
@@ -81,13 +84,13 @@ namespace octotrees {
                 }
 
                 void emplace_tr(int id, const triangle_t &tr) {
-                    if (!is_leaf_) {
+                    if (is_leaf_) {
                         triangles_.emplace_back(id, tr);
                         return;
                     }
                     for (int i = 0; i < CHILD_NUM; i++) {
                         if (tr.is_in_square(children_[i]->center_, children_[i]->radius_)) {
-                            parent_->active_nodes_ |= 1 << i;
+                                active_nodes_ |= (1 << i);
                             children_[i]->emplace_tr(id, tr);
                             return;
                         }
@@ -106,6 +109,8 @@ namespace octotrees {
                             }
                         }
                     }
+                    if (is_leaf_ || !active_nodes_) return ans;
+
                     ans_set_t ch_inter;
 
                     for (auto it = triangles_.begin(); it != triangles_.end(); it++) {
@@ -115,7 +120,7 @@ namespace octotrees {
 
                     for (int i = 0; i < CHILD_NUM; i++) {
 
-                        if (!(active_nodes_ && (i << i))) continue;
+                        if (!(active_nodes_ & (1 << i))) continue;
 
                         ch_inter = children_[i]->get_intersections();
                         ans.insert(ch_inter.begin(), ch_inter.end());
@@ -127,11 +132,10 @@ namespace octotrees {
                 ans_set_t get_children_intersections(const id_trian_t& par_tr) {
                     ans_set_t ans;
 
-                    if (is_leaf_) return ans;
+                    if (is_leaf_ || !active_nodes_) return ans;
 
                     for (int i = 0; i < CHILD_NUM; i++) {
-
-                        if (!(active_nodes_ && (i << i))) continue;
+                        if (!(active_nodes_ & (1 << i))) continue;
 
                         for (auto it = children_[i]->triangles_.begin(); it != children_[i]->triangles_.end(); it++) {
                             if (par_tr.tr.is_intersected(it->tr)) {
@@ -147,13 +151,20 @@ namespace octotrees {
                 }
 
                 void print() const {
-                    for (auto it : triangles_)
-                        it.tr.print();
+                    std::cout << "center: " << std::endl;
+                    center_.print();
+                    std::cout << "radius = " << radius_ << std::endl;
+                }
 
+                int cnt() const {
+                    if (is_leaf_) return triangles_.size();
+                    int cock = 0;
                     for (int i = 0; i < CHILD_NUM; i++) {
-                        if (!is_leaf_)
-                            children_[i]->print();
+                        if (!(active_nodes_ & (1 << i))) continue;
+
+                        cock += children_[i]->cnt();
                     }
+                    return cock + triangles_.size();
                 }
         };
 
@@ -170,11 +181,11 @@ namespace octotrees {
                        radius3 = std::abs((crds.z_max - crds.z_min) / 2);
 
                 if (radius2 > radius1) radius1 = radius2;
-                if (radius3 > radius1) radius3 = radius3;
+                if (radius3 > radius1) radius1 = radius3;
 
-                root_ = new octonode_t{{(crds.x_max - crds.x_min) / 2,
-                                       (crds.y_max - crds.y_min) / 2,
-                                       (crds.z_max - crds.z_min) / 2}, radius1 + 5};
+                root_ = new octonode_t{{(crds.x_max + crds.x_min) / 2,
+                                        (crds.y_max + crds.y_min) / 2,
+                                        (crds.z_max + crds.z_min) / 2}, radius1};
 
                 for (int i = 0; i < trs.capacity(); i++)
                     root_->emplace_tr(i, trs[i]);

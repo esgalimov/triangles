@@ -38,23 +38,8 @@ int main() {
 
     octotree_t octotree{triangles, max_min_crds};
 
-    //octotree.print();
-
     octotree.get_intersections();
     octotree.print_intersections();
-
-//     std::set<int> ans;
-//
-//     for (int i = 0; i < tr_num; i++) {
-//         for (int j = i + 1; j < tr_num; j++) {
-//             if (triangles[i].is_intersected(triangles[j])) {
-//                 ans.emplace(i);
-//                 ans.emplace(j);
-//             }
-//         }
-//     }
-//     for (auto it = ans.begin(); it != ans.end(); it++)
-//         std::cout << *it << " ";
 
     return 0;
 }
