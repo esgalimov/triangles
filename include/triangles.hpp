@@ -108,7 +108,7 @@ class triangle_t {
             segs({{{pnt1, pnt2}, {pnt2, pnt3}, {pnt3, pnt1}}}),
             pln(pnt1, pnt2, pnt3) {}
 
-        bool is_intersected(const triangle_t &tr) {
+        bool is_intersected(const triangle_t &tr) const {
             if (tr.is_not_inter_pln(pln)) return false;
 
             location_t rel_loc = pln.relatival_location(tr.pln, tr.pnts[0]);

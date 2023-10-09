@@ -16,8 +16,6 @@ class point_t {
 
         point_t(double x = NAN, double y = NAN, double z = NAN) : x_(x), y_(y), z_(z) {};
 
-        point_t(const point_t &pnt) : x_(pnt.x_), y_(pnt.y_), z_(pnt.z_) {};
-
         bool operator==(const point_t &pnt) const {
             return (equal(x_, pnt.x_) && equal(y_, pnt.y_) && equal(z_, pnt.z_));
         }
@@ -247,7 +245,7 @@ class plane_t {
             norm_vec(vector_t{a_, b_, c_} / std::sqrt(std::pow(a_, 2) + std::pow(b_, 2) + std::pow(c_, 2)))
         {}
 
-        location_t relatival_location(const plane_t &pln, const point_t &pnt)
+        location_t relatival_location(const plane_t &pln, const point_t &pnt) const
         {
             assert(is_valid() && pln.is_valid() && pnt.is_valid());
 

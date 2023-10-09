@@ -3,6 +3,7 @@
 #include <list>
 #include <set>
 #include <vector>
+#include<limits>
 #include "triangles.hpp"
 
 namespace octotrees {
@@ -13,33 +14,45 @@ namespace octotrees {
 
     struct max_min_crds_t
     {
-        double x_min = NAN;
-        double x_max = NAN;
+        double x_min = std::numeric_limits<double>::infinity();
+        double x_max = -x_min;
 
-        double y_min = NAN;
-        double y_max = NAN;
+        double y_min = std::numeric_limits<double>::infinity();
+        double y_max = -y_min;
 
-        double z_min = NAN;
-        double z_max = NAN;
-    }
+        double z_min = std::numeric_limits<double>::infinity();
+        double z_max = -z_min;
+
+        void update(double x, double y, double z) {
+            if (x < x_min) x_min = x;
+            if (x > x_max) x_max = x;
+            if (y < y_min) y_min = y;
+            if (y > y_max) y_max = y;
+            if (z < z_min) z_min = z;
+            if (z > z_max) z_max = z;
+        }
+    };
 
     class octotree_t {
 
         struct id_trian_t {
             int id;
             triangle_t tr;
-        }
+            id_trian_t(int id_, triangle_t tr_) : id(id_), tr(tr_) {}
+        };
 
         class octonode_t {
             std::array<octonode_t*, 8> children_;
             std::list<id_trian_t> triangles_;
             char active_nodes_;
             octonode_t *parent_;
+            bool is_leaf_;
+
+            using ans_set_t = typename std::set<int>;
 
             public:
                 const point_t center_;
                 const double  radius_;
-                bool is_leaf_;
 
                 octonode_t(const point_t &center, double radius = NAN, octonode_t *parent_ = nullptr) :
                 center_(center), radius_(radius), active_nodes_(0), is_leaf_(true) {
@@ -56,31 +69,91 @@ namespace octotrees {
                     children_[6] = new octonode_t{{center.x_ - next_rad, center.y_ - next_rad, center.z_ - next_rad}, next_rad, this};
                     children_[7] = new octonode_t{{center.x_ - next_rad, center.y_ - next_rad, center.z_ + next_rad}, next_rad, this};
 
-                    have_child_ = false;
+                    is_leaf_ = false;
                 }
 
                 ~octonode_t() {
                     if (!is_leaf_) {
                         for (int i = 0; i < CHILD_NUM; i++) {
-                            children_[i]->~octonode_t();
+                            delete children_[i];
                         }
                     }
-                    delete this;
                 }
 
                 void emplace_tr(int id, const triangle_t &tr) {
-                    if (!have_child_) {
-                        triangles_.emplace_back({id, tr});
+                    if (!is_leaf_) {
+                        triangles_.emplace_back(id, tr);
                         return;
                     }
                     for (int i = 0; i < CHILD_NUM; i++) {
-                        if (tr.is_in_square(children_[i].center_, children_[i].radius_)) {
+                        if (tr.is_in_square(children_[i]->center_, children_[i]->radius_)) {
                             parent_->active_nodes_ |= 1 << i;
-                            children_[i].emplace_tr(id, tr);
+                            children_[i]->emplace_tr(id, tr);
                             return;
                         }
                     }
-                    triangles_.emplace_back({id, tr});
+                    triangles_.emplace_back(id, tr);
+                }
+
+                ans_set_t get_intersections() {
+                    ans_set_t ans;
+
+                    for (auto it = triangles_.begin(); it != triangles_.end(); it++) {
+                        for (auto jt = (++it)--; jt != triangles_.end(); jt++) {
+                            if (it->tr.is_intersected(jt->tr)) {
+                                ans.emplace(it->id);
+                                ans.emplace(jt->id);
+                            }
+                        }
+                    }
+                    ans_set_t ch_inter;
+
+                    for (auto it = triangles_.begin(); it != triangles_.end(); it++) {
+                        ch_inter = get_children_intersections(*it);
+                        ans.insert(ch_inter.begin(), ch_inter.end());
+                    }
+
+                    for (int i = 0; i < CHILD_NUM; i++) {
+
+                        if (!(active_nodes_ && (i << i))) continue;
+
+                        ch_inter = children_[i]->get_intersections();
+                        ans.insert(ch_inter.begin(), ch_inter.end());
+                    }
+
+                    return ans;
+                }
+
+                ans_set_t get_children_intersections(const id_trian_t& par_tr) {
+                    ans_set_t ans;
+
+                    if (is_leaf_) return ans;
+
+                    for (int i = 0; i < CHILD_NUM; i++) {
+
+                        if (!(active_nodes_ && (i << i))) continue;
+
+                        for (auto it = children_[i]->triangles_.begin(); it != children_[i]->triangles_.end(); it++) {
+                            if (par_tr.tr.is_intersected(it->tr)) {
+                                ans.emplace(it->id);
+                            }
+                        }
+                        ans_set_t ch_inter = children_[i]->get_children_intersections(par_tr);
+                        ans.insert(ch_inter.begin(), ch_inter.end());
+                    }
+                    if (!ans.empty()) ans.emplace(par_tr.id);
+
+                    return ans;
+                }
+
+                void print() const {
+                    for (auto it : triangles_)
+                        it.tr.print();
+
+                    for (int i = 0; i < CHILD_NUM; i++) {
+                        if (!is_leaf_)
+                            children_[i]->print();
+                    }
                 }
         };
 
@@ -101,16 +174,23 @@ namespace octotrees {
 
                 root_ = new octonode_t{{(crds.x_max - crds.x_min) / 2,
                                        (crds.y_max - crds.y_min) / 2,
-                                       (crds.z_max - crds.z_min) / 2}, radius1};
+                                       (crds.z_max - crds.z_min) / 2}, radius1 + 5};
 
                 for (int i = 0; i < trs.capacity(); i++)
-                    root->emplace_tr(i, trs[i]);
+                    root_->emplace_tr(i, trs[i]);
             }
-            ~octotree_t() { root->~octonode_t(); }
+            ~octotree_t() { delete root_; }
 
             void get_intersections() {
-
+                intersections = root_->get_intersections();
             }
+
+            void print_intersections() const {
+                for (auto it = intersections.begin(); it != intersections.end(); it++)
+                    std::cout << *it << " ";
+            }
+
+            void print() const { root_->print(); }
     };
 
 
