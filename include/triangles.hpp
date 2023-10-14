@@ -133,7 +133,7 @@ class triangle_t {
         }
 
         bool is_pnt() const {
-            return false;
+            return pnts[0] == pnts[1] && pnts[1] == pnts[2];
         }
 
         bool is_in_cube(const point_t &cntr, double radius) const {

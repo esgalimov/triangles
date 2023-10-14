@@ -109,41 +109,31 @@ namespace octotrees {
                     triangles_.emplace_back(id, tr);
                 }
 
-                ans_set_t get_intersections() {
-                    ans_set_t ans;
-
+                void get_intersections(ans_set_t &ans) {
                     for (auto it = triangles_.begin(); it != triangles_.end(); it++) {
-                        for (auto jt = (++it)--; jt != triangles_.end(); jt++) {
+                        for (auto jt = std::next(it); jt != triangles_.end(); jt++) {
                             if (it->tr.is_intersected(jt->tr)) {
-                                ans.emplace(it->id);
-                                ans.emplace(jt->id);
+                                ans.insert({it->id, jt->id});
                             }
                         }
                     }
-                    if (is_leaf_ || !active_nodes_) return ans;
-
-                    ans_set_t ch_inter;
+                    if (is_leaf_ || !active_nodes_) return;
 
                     for (auto it = triangles_.begin(); it != triangles_.end(); it++) {
-                        ch_inter = get_children_intersections(*it);
-                        ans.insert(ch_inter.begin(), ch_inter.end());
+                        get_children_intersections(*it, ans);
                     }
 
                     for (int i = 0; i < CHILD_NUM; i++) {
-
                         if (!(active_nodes_ & (1 << i))) continue;
 
-                        ch_inter = children_[i]->get_intersections();
-                        ans.insert(ch_inter.begin(), ch_inter.end());
+                        children_[i]->get_intersections(ans);
                     }
-
-                    return ans;
                 }
 
-                ans_set_t get_children_intersections(const id_trian_t& par_tr) {
-                    ans_set_t ans;
+                void get_children_intersections(const id_trian_t& par_tr, ans_set_t &ans) {
+                    if (is_leaf_ || !active_nodes_) return;
 
-                    if (is_leaf_ || !active_nodes_) return ans;
+                    int sz_before = ans.size();
 
                     for (int i = 0; i < CHILD_NUM; i++) {
                         if (!(active_nodes_ & (1 << i))) continue;
@@ -153,18 +143,15 @@ namespace octotrees {
                                 ans.emplace(it->id);
                             }
                         }
-                        ans_set_t ch_inter = children_[i]->get_children_intersections(par_tr);
-                        ans.insert(ch_inter.begin(), ch_inter.end());
+                        children_[i]->get_children_intersections(par_tr, ans);
                     }
-                    if (!ans.empty()) ans.emplace(par_tr.id);
-
-                    return ans;
+                    if (sz_before - ans.size()) ans.emplace(par_tr.id);
                 }
         };
 
         octonode_t* root_ = nullptr;
 
-        std::set<int> intersections;
+        ans_set_t intersections;
 
         using it_tr = typename std::list<id_trian_t>::iterator;
 
@@ -188,7 +175,7 @@ namespace octotrees {
             ~octotree_t() { delete root_; }
 
             ans_set_t get_intersections() {
-                intersections = root_->get_intersections();
+                root_->get_intersections(intersections);
                 return intersections;
             }
     };
