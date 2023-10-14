@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "../include/octotree.hpp"
+#include "octotree.hpp"
 #include <vector>
 #include <set>
 #include <chrono>
@@ -38,22 +38,12 @@ int main() {
                              {crds[6], crds[7], crds[8]}});
     }
 
-    const std::chrono::time_point<std::chrono::high_resolution_clock> start = std::chrono::high_resolution_clock::now();
-
     octotree_t octotree{triangles, max_min_crds};
-
-    const auto octree_end = std::chrono::high_resolution_clock::now();
-    std::cout << "octree time = " << std::chrono::duration_cast<std::chrono::milliseconds>(octree_end - start).count() / 1000.0 << std::endl;
 
     std::set<int> ans = octotree.get_intersections();
 
     for (auto it = ans.begin(); it != ans.end(); it++)
-        std::cout << *it << std::endl;
-
-    const auto end = std::chrono::high_resolution_clock::now();
-    const auto mk_s = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    const double s = mk_s / 1000.0;
-    std::cout << "all time in sec - " << s << std::endl;
+        std::cout << *it << " ";
 
     return 0;
 }

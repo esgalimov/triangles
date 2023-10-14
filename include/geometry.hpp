@@ -134,6 +134,10 @@ class line_t {
             else return INTERBR;
         }
 
+        bool is_pnt_on_line(const point_t &point) const {
+            return dir_vec.is_collinear({point, pnt});
+        }
+
         bool is_valid() const {
             return pnt.is_valid() && dir_vec.is_valid();
         }
@@ -217,6 +221,12 @@ class line_segment_t {
 
         bool is_zero_len() const { return pnt1 == pnt2; }
 
+        double len() const {
+            return std::sqrt(std::pow(pnt1.x_ - pnt2.x_, 2) +
+                             std::pow(pnt1.y_ - pnt2.y_, 2) +
+                             std::pow(pnt1.z_ - pnt2.z_, 2));
+        }
+
         bool is_valid() const {
             return pnt1.is_valid() && pnt2.is_valid() &&
                    line.is_valid();
@@ -292,6 +302,17 @@ class plane_t {
             line_t ret_line{line_pnt, dir_vec};
 
             return ret_line;
+        }
+
+        point_t get_intersection(const line_t &ln) const {
+            if (equal(ln.dir_vec.scalar_multiply(norm_vec), 0)) return {};
+
+            double divider = a_ * ln.dir_vec.get_x() + b_ * ln.dir_vec.get_y() + c_ * ln.dir_vec.get_z();
+            double t0 = -1 * get_pnt_pos(ln.pnt) / divider;
+
+            return {ln.pnt.x_ + ln.dir_vec.get_x() * t0,
+                    ln.pnt.y_ + ln.dir_vec.get_y() * t0,
+                    ln.pnt.z_ + ln.dir_vec.get_z() * t0};
         }
 
         bool is_valid() const {

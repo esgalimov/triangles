@@ -36,28 +36,43 @@ class triangle_t {
             }
         }
 
-        return is_tr_inside_tr(tr);
+        return is_pnt_inside_tr(tr.pnts[0]) || tr.is_pnt_inside_tr(pnts[0]);
     }
 
-    bool is_tr_inside_tr(const triangle_t &tr) const {
-        vector_t in_this[3] = {{tr.pnts[0], pnts[0]}, {tr.pnts[0], pnts[1]}, {tr.pnts[0], pnts[2]}},
-                 in_anot[3] = {{pnts[0], tr.pnts[0]}, {pnts[0], tr.pnts[1]}, {pnts[0], tr.pnts[2]}};
+//     bool is_tr_inside_tr(const triangle_t &tr) const {
+// //         vector_t in_this[3] = {{tr.pnts[0], pnts[0]}, {tr.pnts[0], pnts[1]}, {tr.pnts[0], pnts[2]}},
+// //                  in_anot[3] = {{pnts[0], tr.pnts[0]}, {pnts[0], tr.pnts[1]}, {pnts[0], tr.pnts[2]}};
+// //
+// //         bool is_in_11 = true, is_in_12 = true,
+// //              is_in_21 = true, is_in_22 = true;
+// //
+// //         vector_t norm_vec = tr.pln.norm_vec;
+// //
+// //         for (int i = 0; i < 3; i++) {
+// //                 bool is_dir = (in_this[i] * segs[i].line.dir_vec).is_co_dir(norm_vec);
+// //                 is_in_11 = is_in_11 &&  is_dir;
+// //                 is_in_12 = is_in_12 && !is_dir;
+// //
+// //                 is_dir = (in_anot[i] * tr.segs[i].line.dir_vec).is_co_dir(norm_vec);
+// //                 is_in_21 = is_in_21 &&  is_dir;
+// //                 is_in_22 = is_in_22 && !is_dir;
+// //         }
+//         return is_pnt_inside_tr(tr.pnts[0]) || tr.is_pnt_inside_tr(pnts[0]);
+//     }
 
-        bool is_in_11 = true, is_in_12 = true,
-             is_in_21 = true, is_in_22 = true;
+    bool is_pnt_inside_tr(const point_t &pnt) const {
+        vector_t pnt_vecs[3] = {{pnt, pnts[0]}, {pnt, pnts[1]}, {pnt, pnts[2]}};
 
-        vector_t norm_vec = tr.pln.norm_vec;
+        bool is_in_11 = true, is_in_12 = true;
+
+        vector_t norm_vec = pln.norm_vec;
 
         for (int i = 0; i < 3; i++) {
-                bool is_dir = (in_this[i] * segs[i].line.dir_vec).is_co_dir(norm_vec);
+                bool is_dir = (pnt_vecs[i] * segs[i].line.dir_vec).is_co_dir(norm_vec);
                 is_in_11 = is_in_11 &&  is_dir;
                 is_in_12 = is_in_12 && !is_dir;
-
-                is_dir = (in_anot[i] * tr.segs[i].line.dir_vec).is_co_dir(norm_vec);
-                is_in_21 = is_in_21 &&  is_dir;
-                is_in_22 = is_in_22 && !is_dir;
         }
-        return is_in_11 || is_in_12 || is_in_21 || is_in_22;
+        return is_in_11 || is_in_12;
     }
 
     bool is_intersected_on_inter_pln(const triangle_t &tr) const {
@@ -102,6 +117,71 @@ class triangle_t {
         return {};
     }
 
+    bool trs_intersect(const triangle_t &tr) const {
+        if (tr.is_not_inter_pln(pln)) return false;
+
+        location_t rel_loc = pln.relatival_location(tr.pln, tr.pnts[0]);
+
+        switch (rel_loc) {
+            case COINCIDE:
+                return is_intersected_on_same_pln(tr);
+            case PARALLEL:
+                return false;
+            case INTERSECT:
+                return is_intersected_on_inter_pln(tr);
+            default: return false;
+        }
+    }
+
+    bool segs_intersect(const triangle_t &tr) const {
+        return segs[find_longest_seg()].is_ln_seg_intersected(tr.segs[tr.find_longest_seg()]);
+    }
+
+    int find_longest_seg() const {
+        int longest_i = 0;
+        if (segs[1].len() > segs[longest_i].len()) longest_i = 1;
+        if (segs[2].len() > segs[longest_i].len()) longest_i = 2;
+
+        return longest_i;
+    }
+
+    bool tr_pnt_intersect(const triangle_t &tr) const {
+        double pnt_pos = pln.get_pnt_pos(tr.pnts[0]);
+
+        if (!equal(pnt_pos, 0)) return false;
+
+        return is_pnt_inside_tr(tr.pnts[0]);
+    }
+
+    bool tr_seg_intersect(const triangle_t &tr) const {
+        line_segment_t seg = tr.segs[tr.find_longest_seg()];
+
+        double pnt1_pos = pln.get_pnt_pos(seg.pnt1),
+               pnt2_pos = pln.get_pnt_pos(seg.pnt2);
+
+        if ((pnt1_pos > 0 && pnt2_pos > 0) || (pnt1_pos < 0 && pnt2_pos < 0)) return false;
+
+        if (equal(pnt1_pos, 0) && equal(pnt2_pos, 0))
+            return segs[0].is_ln_seg_intersected(seg) ||
+                   segs[1].is_ln_seg_intersected(seg) ||
+                   segs[2].is_ln_seg_intersected(seg);
+
+        point_t inter_pnt = pln.get_intersection(seg.line);
+
+        return is_pnt_inside_tr(inter_pnt);
+    }
+
+    bool seg_pnt_intersect(const triangle_t &tr) const {
+        int longest_i = find_longest_seg();
+
+        line_segment_t seg = segs[longest_i];
+        point_t pnt = pnts[0];
+
+        if (seg.line.is_pnt_on_line(pnt))
+            return seg.is_line_pnt_on_ln_seg(pnt);
+        return false;
+    }
+
     public:
         triangle_t(const point_t &pnt1, const point_t &pnt2, const point_t &pnt3) :
             pnts({pnt1, pnt2, pnt3}),
@@ -109,27 +189,33 @@ class triangle_t {
             pln(pnt1, pnt2, pnt3) {}
 
         bool is_intersected(const triangle_t &tr) const {
-            if (tr.is_not_inter_pln(pln)) return false;
+            if (is_triangle() && tr.is_triangle()) return trs_intersect(tr);
 
-            location_t rel_loc = pln.relatival_location(tr.pln, tr.pnts[0]);
+            if (is_pnt() && tr.is_pnt()) return pnts[0] == tr.pnts[0];
 
-            switch (rel_loc) {
-                case COINCIDE:
-                    return is_intersected_on_same_pln(tr);
-                case PARALLEL:
-                    return false;
-                case INTERSECT:
-                    return is_intersected_on_inter_pln(tr);
-                default: return false;
-            }
+            if (is_line_seg() && tr.is_line_seg()) return segs_intersect(tr);
+
+            if (is_triangle() && tr.is_pnt()) return tr_pnt_intersect(tr);
+
+            if (is_pnt() && tr.is_triangle()) return tr.tr_pnt_intersect(*this);
+
+            if (is_triangle() && tr.is_line_seg()) return tr_seg_intersect(tr);
+
+            if (is_line_seg() && tr.is_triangle()) return tr.tr_seg_intersect(*this);
+
+            if (is_line_seg() && tr.is_pnt()) return seg_pnt_intersect(tr);
+
+            if (is_pnt() && tr.is_line_seg()) return tr.seg_pnt_intersect(*this);
+
+            return false;
         }
 
         bool is_triangle() const {
-            return true;
+            return !segs[0].line.dir_vec.is_collinear(segs[1].line.dir_vec);
         }
 
         bool is_line_seg() const {
-            return false;
+            return !is_pnt() && equal((segs[0].line.dir_vec * segs[1].line.dir_vec).len(), 0);
         }
 
         bool is_pnt() const {
