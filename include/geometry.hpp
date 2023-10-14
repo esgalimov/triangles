@@ -22,7 +22,7 @@ class point_t {
 
         bool operator!=(const point_t &pnt) const { return !(*this == pnt); }
 
-        bool is_in_square(const point_t &cntr, double radius) const {
+        bool is_in_cube(const point_t &cntr, double radius) const {
             return std::abs(x_ - cntr.x_) < radius &&
                    std::abs(y_ - cntr.y_) < radius &&
                    std::abs(z_ - cntr.z_) < radius;

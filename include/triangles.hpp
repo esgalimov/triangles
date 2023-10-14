@@ -124,10 +124,22 @@ class triangle_t {
             }
         }
 
-        bool is_in_square(const point_t &cntr, double radius) const {
-            return pnts[0].is_in_square(cntr, radius) &&
-                   pnts[1].is_in_square(cntr, radius) &&
-                   pnts[2].is_in_square(cntr, radius);
+        bool is_triangle() const {
+            return true;
+        }
+
+        bool is_line_seg() const {
+            return false;
+        }
+
+        bool is_pnt() const {
+            return false;
+        }
+
+        bool is_in_cube(const point_t &cntr, double radius) const {
+            return pnts[0].is_in_cube(cntr, radius) &&
+                   pnts[1].is_in_cube(cntr, radius) &&
+                   pnts[2].is_in_cube(cntr, radius);
         }
 
         void print() const {
