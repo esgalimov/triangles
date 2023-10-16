@@ -175,7 +175,7 @@ class triangle_t {
         int longest_i = find_longest_seg();
 
         line_segment_t seg = segs[longest_i];
-        point_t pnt = pnts[0];
+        point_t pnt = tr.pnts[0];
 
         if (seg.line.is_pnt_on_line(pnt))
             return seg.is_line_pnt_on_ln_seg(pnt);
