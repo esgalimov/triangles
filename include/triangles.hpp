@@ -164,7 +164,7 @@ class triangle_t {
         if (equal(pnt1_pos, 0) && equal(pnt2_pos, 0))
             return segs[0].is_ln_seg_intersected(seg) ||
                    segs[1].is_ln_seg_intersected(seg) ||
-                   segs[2].is_ln_seg_intersected(seg);
+                   segs[2].is_ln_seg_intersected(seg) || is_pnt_inside_tr(seg.pnt1);
 
         point_t inter_pnt = pln.get_intersection(seg.line);
 
