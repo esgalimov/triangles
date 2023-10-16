@@ -85,7 +85,7 @@ class vector_t {
         }
 
         bool is_co_dir(const vector_t &vec) const {
-            return is_collinear(vec) && scalar_multiply(vec) > 0;
+            return is_collinear(vec) && scalar_multiply(vec) >= 0;
         }
 
         bool is_valid() const {
