@@ -38,12 +38,6 @@ int main() {
                              {crds[6], crds[7], crds[8]}});
     }
 
-    for (int i = 0; i < 8; i++) {
-        if (i != 6 && triangles[6].is_intersected(triangles[i]))
-            std::cout << i << " ";
-    }
-    std::cout << std::endl;
-
     octotree_t octotree{triangles, max_min_crds};
 
     std::set<int> ans = octotree.get_intersections();
