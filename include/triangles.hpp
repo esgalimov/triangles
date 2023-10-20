@@ -18,6 +18,10 @@ class triangle_t {
     PntArr pnts;
     SegArr segs;
     plane_t pln;
+    point_t cntr;
+
+    int longest_seg_id;
+    const double dist_radius;
 
     bool is_not_inter_pln(const plane_t &pl) const {
             double pnt1_pos = pl.get_pnt_pos(pnts[0]),
@@ -38,27 +42,6 @@ class triangle_t {
 
         return is_pnt_inside_tr(tr.pnts[0]) || tr.is_pnt_inside_tr(pnts[0]);
     }
-
-//     bool is_tr_inside_tr(const triangle_t &tr) const {
-// //         vector_t in_this[3] = {{tr.pnts[0], pnts[0]}, {tr.pnts[0], pnts[1]}, {tr.pnts[0], pnts[2]}},
-// //                  in_anot[3] = {{pnts[0], tr.pnts[0]}, {pnts[0], tr.pnts[1]}, {pnts[0], tr.pnts[2]}};
-// //
-// //         bool is_in_11 = true, is_in_12 = true,
-// //              is_in_21 = true, is_in_22 = true;
-// //
-// //         vector_t norm_vec = tr.pln.norm_vec;
-// //
-// //         for (int i = 0; i < 3; i++) {
-// //                 bool is_dir = (in_this[i] * segs[i].line.dir_vec).is_co_dir(norm_vec);
-// //                 is_in_11 = is_in_11 &&  is_dir;
-// //                 is_in_12 = is_in_12 && !is_dir;
-// //
-// //                 is_dir = (in_anot[i] * tr.segs[i].line.dir_vec).is_co_dir(norm_vec);
-// //                 is_in_21 = is_in_21 &&  is_dir;
-// //                 is_in_22 = is_in_22 && !is_dir;
-// //         }
-//         return is_pnt_inside_tr(tr.pnts[0]) || tr.is_pnt_inside_tr(pnts[0]);
-//     }
 
     bool is_pnt_inside_tr(const point_t &pnt) const {
         vector_t pnt_vecs[3] = {{pnt, pnts[0]}, {pnt, pnts[1]}, {pnt, pnts[2]}};
@@ -100,19 +83,17 @@ class triangle_t {
                        inter_23 = segs[1].get_line_intersection(ln),
                        inter_31 = segs[2].get_line_intersection(ln);
 
-        if (inter_12.is_valid() && !inter_12.is_zero_len())
-            return inter_12;
-        if (inter_23.is_valid() && !inter_23.is_zero_len())
-            return inter_23;
+        if (inter_12.is_valid()) {
+            if (!inter_12.is_zero_len()) return inter_12;
+            if (inter_23.is_valid())     return {inter_12.pnt1, inter_23.pnt1};
+            if (inter_31.is_valid())     return {inter_12.pnt1, inter_31.pnt1};
+        }
+        if (inter_23.is_valid()) {
+            if (!inter_23.is_zero_len()) return inter_23;
+            if (inter_31.is_valid())     return {inter_23.pnt1, inter_31.pnt1};
+        }
         if (inter_31.is_valid() && !inter_31.is_zero_len())
             return inter_31;
-
-        if (inter_12.is_valid() && inter_23.is_valid())
-            return {inter_12.pnt1, inter_23.pnt1};
-        if (inter_23.is_valid() && inter_31.is_valid())
-            return {inter_23.pnt1, inter_31.pnt1};
-        if (inter_12.is_valid() && inter_31.is_valid())
-            return {inter_12.pnt1, inter_31.pnt1};
 
         return {};
     }
@@ -134,7 +115,7 @@ class triangle_t {
     }
 
     bool segs_intersect(const triangle_t &tr) const {
-        return segs[find_longest_seg()].is_ln_seg_intersected(tr.segs[tr.find_longest_seg()]);
+        return segs[longest_seg_id].is_ln_seg_intersected(tr.segs[tr.longest_seg_id]);
     }
 
     int find_longest_seg() const {
@@ -154,7 +135,7 @@ class triangle_t {
     }
 
     bool tr_seg_intersect(const triangle_t &tr) const {
-        line_segment_t seg = tr.segs[tr.find_longest_seg()];
+        line_segment_t seg = tr.segs[tr.longest_seg_id];
 
         double pnt1_pos = pln.get_pnt_pos(seg.pnt1),
                pnt2_pos = pln.get_pnt_pos(seg.pnt2);
@@ -172,9 +153,7 @@ class triangle_t {
     }
 
     bool seg_pnt_intersect(const triangle_t &tr) const {
-        int longest_i = find_longest_seg();
-
-        line_segment_t seg = segs[longest_i];
+        line_segment_t seg = segs[longest_seg_id];
         point_t pnt = tr.pnts[0];
 
         if (seg.line.is_pnt_on_line(pnt))
@@ -186,9 +165,18 @@ class triangle_t {
         triangle_t(const point_t &pnt1, const point_t &pnt2, const point_t &pnt3) :
             pnts({pnt1, pnt2, pnt3}),
             segs({{{pnt1, pnt2}, {pnt2, pnt3}, {pnt3, pnt1}}}),
-            pln(pnt1, pnt2, pnt3) {}
+            pln(pnt1, pnt2, pnt3),
+            cntr((pnt1.x_ + pnt2.x_ + pnt3.x_) / 3,
+                 (pnt1.y_ + pnt2.y_ + pnt3.y_) / 3,
+                 (pnt1.z_ + pnt2.z_ + pnt3.z_) / 3),
+            longest_seg_id(find_longest_seg()),
+            dist_radius(segs[longest_seg_id].len()) {}
 
         bool is_intersected(const triangle_t &tr) const {
+            double dist_max_intersect = (dist_radius + tr.dist_radius) / 2;
+
+            if (vector_t{cntr, tr.cntr}.len() > dist_max_intersect) return false;
+
             if (is_triangle() && tr.is_triangle()) return trs_intersect(tr);
 
             if (is_pnt() && tr.is_pnt()) return pnts[0] == tr.pnts[0];
@@ -215,7 +203,7 @@ class triangle_t {
         }
 
         bool is_line_seg() const {
-            return !is_pnt() && equal((segs[0].line.dir_vec * segs[1].line.dir_vec).len(), 0);
+            return !is_pnt() && (segs[0].line.dir_vec * segs[1].line.dir_vec).is_zero_len();
         }
 
         bool is_pnt() const {
@@ -225,6 +213,12 @@ class triangle_t {
         bool is_in_cube(const point_t &cntr, double radius) const {
             return pnts[0].is_in_cube(cntr, radius) &&
                    pnts[1].is_in_cube(cntr, radius) &&
+                   pnts[2].is_in_cube(cntr, radius);
+        }
+
+        bool is_part_in_cube(const point_t &cntr, double radius) const {
+            return pnts[0].is_in_cube(cntr, radius) ||
+                   pnts[1].is_in_cube(cntr, radius) ||
                    pnts[2].is_in_cube(cntr, radius);
         }
 

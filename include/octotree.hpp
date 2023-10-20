@@ -3,7 +3,7 @@
 #include <list>
 #include <set>
 #include <vector>
-#include<limits>
+#include <limits>
 #include "triangles.hpp"
 
 namespace octotrees {
@@ -101,7 +101,6 @@ namespace octotrees {
                             active_nodes_ |= (1 << i);
                             children_[i]->update_trs();
                         }
-                        else delete children_[i];
                     }
                 }
 
@@ -138,6 +137,8 @@ namespace octotrees {
                     for (int i = 0; i < CHILD_NUM; i++) {
                         if (!(active_nodes_ & (1 << i))) continue;
 
+                        if (!par_tr.tr.is_part_in_cube(children_[i]->center_, children_[i]->radius_)) continue;
+
                         for (auto it = children_[i]->triangles_.begin(); it != children_[i]->triangles_.end(); it++) {
                             if (par_tr.tr.is_intersected(it->tr)) {
                                 ans.emplace(it->id);
@@ -152,8 +153,6 @@ namespace octotrees {
         octonode_t* root_ = nullptr;
 
         ans_set_t intersections;
-
-        using it_tr = typename std::list<id_trian_t>::iterator;
 
         public:
             octotree_t(const std::vector<triangle_t> &trs, const max_min_crds_t &crds) {

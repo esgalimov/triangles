@@ -5,6 +5,7 @@
 #include <set>
 #include <chrono>
 
+#define CHECK_TIME
 using namespace octotrees;
 
 int main() {
@@ -40,10 +41,22 @@ int main() {
 
     octotree_t octotree{triangles, max_min_crds};
 
+    #ifdef CHECK_TIME
+    const std::chrono::time_point<std::chrono::high_resolution_clock> start = std::chrono::high_resolution_clock::now();
+    #endif
+
     std::set<int> ans = octotree.get_intersections();
 
     for (auto it = ans.begin(); it != ans.end(); it++)
-        std::cout << *it << " ";
+        std::cout << *it << std::endl;
+
+    #ifdef CHECK_TIME
+    const auto end = std::chrono::high_resolution_clock::now();
+    const auto mk_s = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    const double s = mk_s / 1000.0;
+
+    std::cout << "all time in sec - " << s << std::endl;
+    #endif
 
     return 0;
 }

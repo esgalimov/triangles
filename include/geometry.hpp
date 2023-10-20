@@ -80,8 +80,12 @@ class vector_t {
             return std::sqrt(std::pow(x_, 2) + std::pow(y_, 2) + std::pow(z_, 2));
         }
 
+        bool is_zero_len() const {
+            return equal(x_, 0) && equal(y_, 0) && equal(z_, 0);
+        }
+
         bool is_collinear(const vector_t &vec) const {
-            return equal((*this * vec).len(), 0);
+            return (*this * vec).is_zero_len();
         }
 
         bool is_co_dir(const vector_t &vec) const {
@@ -261,7 +265,7 @@ class plane_t {
 
             vector_t norm_vecs_mul = norm_vec * pln.norm_vec;
 
-            if (equal(norm_vecs_mul.len(), 0)) {
+            if (norm_vecs_mul.is_zero_len()) {
                 if (equal(a_ * pnt.x_ + b_ * pnt.y_ +
                                          c_ * pnt.z_ + d_, 0)) {
                     return COINCIDE;
