@@ -64,9 +64,9 @@ namespace octotrees {
                     double next_rad = radius_ / 2;
 
                     for (int i = 0; i < CHILD_NUM; ++i) {
-                        double pnt_x = center_.x_ + ((i      & 1) ? next_rad : -next_rad),
-                               pnt_y = center_.y_ + ((i << 1 & 2) ? next_rad : -next_rad),
-                               pnt_z = center_.z_ + ((i << 2 & 4) ? next_rad : -next_rad);
+                        double pnt_x = center_.x_ + ((i & 1) ? next_rad : -next_rad),
+                               pnt_y = center_.y_ + ((i & 2) ? next_rad : -next_rad),
+                               pnt_z = center_.z_ + ((i & 4) ? next_rad : -next_rad);
 
                         nodes.emplace_back(point_t{pnt_x, pnt_y, pnt_z}, next_rad);
                         children_[i] = &nodes.back();

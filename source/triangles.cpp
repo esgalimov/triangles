@@ -5,7 +5,7 @@
 #include <set>
 #include <chrono>
 
-#define CHECK_TIME
+//#define CHECK_TIME
 using namespace octotrees;
 
 int main() {
