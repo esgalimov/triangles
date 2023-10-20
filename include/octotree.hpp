@@ -63,29 +63,14 @@ namespace octotrees {
 
                     double next_rad = radius_ / 2;
 
-                    nodes.emplace_back(point_t{center_.x_ + next_rad, center_.y_ + next_rad, center_.z_ + next_rad}, next_rad);
-                    children_[0] = &nodes.back();
+                    for (int i = 0; i < CHILD_NUM; ++i) {
+                        double pnt_x = center_.x_ + ((i      & 1) ? next_rad : -next_rad),
+                               pnt_y = center_.y_ + ((i << 1 & 2) ? next_rad : -next_rad),
+                               pnt_z = center_.z_ + ((i << 2 & 4) ? next_rad : -next_rad);
 
-                    nodes.emplace_back(point_t{center_.x_ + next_rad, center_.y_ + next_rad, center_.z_ - next_rad}, next_rad);
-                    children_[1] = &nodes.back();
-
-                    nodes.emplace_back(point_t{center_.x_ + next_rad, center_.y_ - next_rad, center_.z_ - next_rad}, next_rad);
-                    children_[2] = &nodes.back();
-
-                    nodes.emplace_back(point_t{center_.x_ + next_rad, center_.y_ - next_rad, center_.z_ + next_rad}, next_rad);
-                    children_[3] = &nodes.back();
-
-                    nodes.emplace_back(point_t{center_.x_ - next_rad, center_.y_ + next_rad, center_.z_ + next_rad}, next_rad);
-                    children_[4] = &nodes.back();
-
-                    nodes.emplace_back(point_t{center_.x_ - next_rad, center_.y_ + next_rad, center_.z_ - next_rad}, next_rad);
-                    children_[5] = &nodes.back();
-
-                    nodes.emplace_back(point_t{center_.x_ - next_rad, center_.y_ - next_rad, center_.z_ - next_rad}, next_rad);
-                    children_[6] = &nodes.back();
-
-                    nodes.emplace_back(point_t{center_.x_ - next_rad, center_.y_ - next_rad, center_.z_ + next_rad}, next_rad);
-                    children_[7] = &nodes.back();
+                        nodes.emplace_back(point_t{pnt_x, pnt_y, pnt_z}, next_rad);
+                        children_[i] = &nodes.back();
+                    }
 
                     int sz_before = triangles_.size();
                     auto it = triangles_.begin();
