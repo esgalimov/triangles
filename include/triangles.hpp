@@ -83,17 +83,19 @@ class triangle_t {
                        inter_23 = segs[1].get_line_intersection(ln),
                        inter_31 = segs[2].get_line_intersection(ln);
 
-        if (inter_12.is_valid()) {
-            if (!inter_12.is_zero_len()) return inter_12;
-            if (inter_23.is_valid())     return {inter_12.pnt1, inter_23.pnt1};
-            if (inter_31.is_valid())     return {inter_12.pnt1, inter_31.pnt1};
-        }
-        if (inter_23.is_valid()) {
-            if (!inter_23.is_zero_len()) return inter_23;
-            if (inter_31.is_valid())     return {inter_23.pnt1, inter_31.pnt1};
-        }
+        if (inter_12.is_valid() && !inter_12.is_zero_len())
+            return inter_12;
+        if (inter_23.is_valid() && !inter_23.is_zero_len())
+            return inter_23;
         if (inter_31.is_valid() && !inter_31.is_zero_len())
             return inter_31;
+
+        if (inter_12.is_valid() && inter_23.is_valid())
+            return {inter_12.pnt1, inter_23.pnt1};
+        if (inter_23.is_valid() && inter_31.is_valid())
+            return {inter_23.pnt1, inter_31.pnt1};
+        if (inter_12.is_valid() && inter_31.is_valid())
+            return {inter_12.pnt1, inter_31.pnt1};
 
         return {};
     }
