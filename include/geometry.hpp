@@ -69,14 +69,13 @@ class vector_t {
 
         vector_t operator/(double num) const { return {x_ / num, y_ / num, z_ / num}; }
 
-        bool operator==(const point_t &vec) const {
+        bool operator==(const vector_t &vec) const {
             return (equal(x_, vec.x_) && equal(y_, vec.y_) && equal(z_, vec.z_));
         }
 
-        bool operator!=(const point_t &vec) const { return !(*this == vec); }
+        bool operator!=(const vector_t &vec) const { return !(*this == vec); }
 
         double len() const {
-            assert(is_valid());
             return std::sqrt(std::pow(x_, 2) + std::pow(y_, 2) + std::pow(z_, 2));
         }
 
@@ -89,7 +88,8 @@ class vector_t {
         }
 
         bool is_co_dir(const vector_t &vec) const {
-            return is_collinear(vec) && scalar_multiply(vec) >= 0;
+            double scal_mul = scalar_multiply(vec);
+            return is_collinear(vec) && (equal(scal_mul, 0) || scal_mul > 0);
         }
 
         bool is_valid() const {
@@ -112,7 +112,7 @@ class line_t {
         const vector_t dir_vec;
 
         line_t(const point_t &pnt, const vector_t &vec) :
-            pnt(pnt), dir_vec(vec) {};
+            pnt(pnt), dir_vec(vec / (vec.is_zero_len() ? 1 : vec.len())) {}
 
         void print() const {
             std::cout << "line:" << std::endl;
@@ -126,6 +126,7 @@ class line_t {
             point_t ln_pnt = ln.pnt;
 
             vector_t cross_ln_vec{pnt, ln.pnt};
+            if (!cross_ln_vec.is_zero_len()) cross_ln_vec = cross_ln_vec / cross_ln_vec.len();
 
             if (equal((dir_vec * ln.dir_vec).scalar_multiply(cross_ln_vec), 0)) {
                 if (dir_vec.is_collinear(ln.dir_vec)) {
@@ -201,10 +202,13 @@ class line_segment_t {
 
             if (ln_seg_int.is_valid()) {
                 if (ln_seg_int.pnt1 == ln_seg_int.pnt2)
-                    return ln_seg.is_line_pnt_on_ln_seg(pnt1);
+                    return ln_seg.is_line_pnt_on_ln_seg(ln_seg_int.pnt1) &&
+                                  is_line_pnt_on_ln_seg(ln_seg_int.pnt1);
 
                 return is_line_pnt_on_ln_seg(ln_seg.pnt1) ||
-                        is_line_pnt_on_ln_seg(ln_seg.pnt2);
+                        is_line_pnt_on_ln_seg(ln_seg.pnt2) ||
+                        ln_seg.is_line_pnt_on_ln_seg(pnt1) ||
+                        ln_seg.is_line_pnt_on_ln_seg(pnt2);
             }
             return false;
         }
@@ -259,15 +263,13 @@ class plane_t {
             norm_vec(vector_t{a_, b_, c_} / std::sqrt(std::pow(a_, 2) + std::pow(b_, 2) + std::pow(c_, 2)))
         {}
 
-        location_t relatival_location(const plane_t &pln, const point_t &pnt) const
-        {
+        location_t relatival_location(const plane_t &pln, const point_t &pnt) const {
             assert(is_valid() && pln.is_valid() && pnt.is_valid());
 
             vector_t norm_vecs_mul = norm_vec * pln.norm_vec;
 
             if (norm_vecs_mul.is_zero_len()) {
-                if (equal(a_ * pnt.x_ + b_ * pnt.y_ +
-                                         c_ * pnt.z_ + d_, 0)) {
+                if (equal(a_ * pnt.x_ + b_ * pnt.y_ + c_ * pnt.z_ + d_, 0)) {
                     return COINCIDE;
                 }
                 return PARALLEL;

@@ -4,14 +4,14 @@
 #include "geometry.hpp"
 #include "double_funcs.hpp"
 
-#define NDEBUG
-
 namespace triangles {
 
 using namespace geometry;
 using namespace double_funcs;
 
 class triangle_t {
+    enum tr_types_t {TRIAN, LINE, POINT};
+
     using PntArr = typename std::array<point_t, 3>;
     using SegArr = typename std::array<line_segment_t, 3>;
 
@@ -19,6 +19,8 @@ class triangle_t {
     SegArr segs;
     plane_t pln;
     point_t cntr;
+
+    tr_types_t type;
 
     int longest_seg_id;
     const double dist_radius;
@@ -28,13 +30,14 @@ class triangle_t {
                    pnt2_pos = pl.get_pnt_pos(pnts[1]),
                    pnt3_pos = pl.get_pnt_pos(pnts[2]);
 
-            return (pnt1_pos > 0 && pnt2_pos > 0 && pnt3_pos > 0) ||
+            return !equal(pnt1_pos, 0) && !equal(pnt2_pos, 0) && !equal(pnt3_pos, 0) &&
+                   (pnt1_pos > 0 && pnt2_pos > 0 && pnt3_pos > 0) ||
                    (pnt1_pos < 0 && pnt2_pos < 0 && pnt3_pos < 0);
         }
 
     bool is_intersected_on_same_pln(const triangle_t &tr) const {
         for (int i = 0; i < 3; i++) {
-            for (int j = i; j < 3; j++) {
+            for (int j = 0; j < 3; j++) {
                 if (segs[i].is_ln_seg_intersected(tr.segs[j]))
                     return true;
             }
@@ -103,17 +106,11 @@ class triangle_t {
     bool trs_intersect(const triangle_t &tr) const {
         if (tr.is_not_inter_pln(pln)) return false;
 
-        location_t rel_loc = pln.relatival_location(tr.pln, tr.pnts[0]);
-
-        switch (rel_loc) {
-            case COINCIDE:
+        if (equal(pln.get_pnt_pos(tr.pnts[0]), 0) &&
+            equal(pln.get_pnt_pos(tr.pnts[1]), 0) &&
+            equal(pln.get_pnt_pos(tr.pnts[2]), 0))
                 return is_intersected_on_same_pln(tr);
-            case PARALLEL:
-                return false;
-            case INTERSECT:
-                return is_intersected_on_inter_pln(tr);
-            default: return false;
-        }
+        return is_intersected_on_inter_pln(tr);
     }
 
     bool segs_intersect(const triangle_t &tr) const {
@@ -172,44 +169,37 @@ class triangle_t {
                  (pnt1.y_ + pnt2.y_ + pnt3.y_) / 3,
                  (pnt1.z_ + pnt2.z_ + pnt3.z_) / 3),
             longest_seg_id(find_longest_seg()),
-            dist_radius(segs[longest_seg_id].len()) {}
+            dist_radius(segs[longest_seg_id].len()) {
+
+                if (!segs[0].line.dir_vec.is_collinear(segs[1].line.dir_vec)) type = TRIAN;
+                else if (pnts[0] == pnts[1] && pnts[1] == pnts[2])            type = POINT;
+                else                                                          type = LINE;
+            }
 
         bool is_intersected(const triangle_t &tr) const {
-            double dist_max_intersect = (dist_radius + tr.dist_radius) / 2;
+            double dist_max_intersect = (dist_radius + tr.dist_radius);
 
             if (vector_t{cntr, tr.cntr}.len() > dist_max_intersect) return false;
 
-            if (is_triangle() && tr.is_triangle()) return trs_intersect(tr);
+            if (type == TRIAN && tr.type == TRIAN) return trs_intersect(tr);
 
-            if (is_pnt() && tr.is_pnt()) return pnts[0] == tr.pnts[0];
+            if (type == POINT && tr.type == POINT) return pnts[0] == tr.pnts[0];
 
-            if (is_line_seg() && tr.is_line_seg()) return segs_intersect(tr);
+            if (type == LINE && tr.type == LINE) return segs_intersect(tr);
 
-            if (is_triangle() && tr.is_pnt()) return tr_pnt_intersect(tr);
+            if (type == TRIAN && tr.type == POINT) return tr_pnt_intersect(tr);
 
-            if (is_pnt() && tr.is_triangle()) return tr.tr_pnt_intersect(*this);
+            if (type == POINT && tr.type == TRIAN) return tr.tr_pnt_intersect(*this);
 
-            if (is_triangle() && tr.is_line_seg()) return tr_seg_intersect(tr);
+            if (type == TRIAN && tr.type == LINE) return tr_seg_intersect(tr);
 
-            if (is_line_seg() && tr.is_triangle()) return tr.tr_seg_intersect(*this);
+            if (type == LINE && tr.type == TRIAN) return tr.tr_seg_intersect(*this);
 
-            if (is_line_seg() && tr.is_pnt()) return seg_pnt_intersect(tr);
+            if (type == LINE && tr.type == POINT) return seg_pnt_intersect(tr);
 
-            if (is_pnt() && tr.is_line_seg()) return tr.seg_pnt_intersect(*this);
+            if (type == POINT && tr.type == LINE) return tr.seg_pnt_intersect(*this);
 
             return false;
-        }
-
-        bool is_triangle() const {
-            return !segs[0].line.dir_vec.is_collinear(segs[1].line.dir_vec);
-        }
-
-        bool is_line_seg() const {
-            return !is_pnt() && (segs[0].line.dir_vec * segs[1].line.dir_vec).is_zero_len();
-        }
-
-        bool is_pnt() const {
-            return pnts[0] == pnts[1] && pnts[1] == pnts[2];
         }
 
         bool is_in_cube(const point_t &cntr, double radius) const {

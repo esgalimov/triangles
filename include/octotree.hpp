@@ -124,21 +124,23 @@ namespace octotrees {
                 void get_children_intersections(const id_trian_t& par_tr, ans_set_t &ans) {
                     if (is_leaf_ || !active_nodes_) return;
 
-                    int sz_before = ans.size();
+                    bool par_tr_int = false;
 
                     for (int i = 0; i < CHILD_NUM; i++) {
                         if (!(active_nodes_ & (1 << i))) continue;
 
-                        if (!par_tr.tr.is_part_in_cube(children_[i]->center_, children_[i]->radius_)) continue;
+                        //if (!par_tr.tr.is_part_in_cube(children_[i]->center_, children_[i]->radius_)) continue;
 
                         for (auto it = children_[i]->triangles_.begin(); it != children_[i]->triangles_.end(); it++) {
                             if (par_tr.tr.is_intersected(it->tr)) {
                                 ans.emplace(it->id);
+                                par_tr_int = true;
                             }
                         }
                         children_[i]->get_children_intersections(par_tr, ans);
                     }
-                    if (sz_before - ans.size()) ans.emplace(par_tr.id);
+
+                    if (par_tr_int) ans.emplace(par_tr.id);
                 }
         };
 
@@ -167,6 +169,12 @@ namespace octotrees {
                     root_->add_tr(i, trs[i]);
                 root_->update_trs(nodes_);
             }
+
+            ~octotree_t()                               = default;
+            octotree_t(const octotree_t& tr)            = delete;
+            octotree_t(octotree_t&& tr)                 = delete;
+            octotree_t& operator=(const octotree_t& tr) = delete;
+            octotree_t& operator=(octotree_t&& tr)      = delete;
 
             ans_set_t get_intersections() {
                 root_->get_intersections(intersections_);

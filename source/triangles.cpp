@@ -39,11 +39,10 @@ int main() {
                              {crds[6], crds[7], crds[8]}});
     }
 
-    octotree_t octotree{triangles, max_min_crds};
-
     #ifdef CHECK_TIME
     auto start = std::chrono::high_resolution_clock::now();
     #endif
+    octotree_t octotree{triangles, max_min_crds};
 
     std::set<int> ans = octotree.get_intersections();
 
@@ -54,7 +53,7 @@ int main() {
     const double tm = std::chrono::duration_cast<std::chrono::milliseconds>(
                       std::chrono::high_resolution_clock::now() - start).count() / 1000.0;
     std::cout << "time = " << tm << "s" << std::endl;
-    #endif
+   #endif
 
     return 0;
 }
